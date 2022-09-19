@@ -8,6 +8,9 @@ mkdir -p /var/log
 touch $LOGFILE
 echo "Run" > $LOGFILE
 
+echo "On Init Backup" > $LOGFILE
+bash backup.sh >> $LOGFILE 2>&1 || (cat $LOGFILE && exit 2)
+
 cat $LOGFILE
 if [ "${RESTORE}" = "**None**" ]; then
   if [ "${SCHEDULE}" = "**None**" ]; then
