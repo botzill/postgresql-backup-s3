@@ -41,12 +41,11 @@ build:
   image: docker:dind
   script:
     - export FOLDER_NAME='docker'
-    - pushd $FOLDER_NAME
+    - cd $FOLDER_NAME
     - export IMAGE_NAME=$CI_REGISTRY_IMAGE/postgresql-backup-s3
     - export IMAGE_TAG=v0.0.1
     - docker build -t $IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
     - docker push $IMAGE_NAME:$IMAGE_TAG
-    - popd
   tags:
     - crawless
   only:
