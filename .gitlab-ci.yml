@@ -1,0 +1,54 @@
+stages:
+  - postgresql-backup-s3
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://localhost:2375
+  DOCKER_TLS_CERTDIR: ""
+
+image: aigent/dind-node
+
+services:
+  - docker:dind
+
+before_script:
+  - |
+      # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/1986#note_549888956
+      attempts=30
+      echo "---- Waiting $attempts sec for docker to come up ----"
+      while ! docker info > /dev/null 2>&1; do
+          echo "Connection attempts left: $attempts"
+          if [ $attempts -eq 0 ]; then
+              echo "Couldn't connect to docker, no attempts left"
+              return 1
+          fi;
+          let attempts=$attempts-1
+          echo "Connection to docker failed"
+          sleep 1
+      done
+      echo "---- Docker came up ----"
+  - docker info
+  - docker login -u $CI_REGISTRY_USER -p $CI_BUILD_TOKEN $CI_REGISTRY
+
+after_script:
+  - docker logout $CI_REGISTRY
+
+build:
+  stage: postgresql-backup-s3
+  retry: 2
+  variables:
+    CI_DEBUG_TRACE: "false"
+  image: docker:dind
+  script:
+    - export FOLDER_NAME='docker'
+    - pushd $FOLDER_NAME
+    - export IMAGE_NAME=$CI_REGISTRY_IMAGE/postgresql-backup-s3
+    - export IMAGE_TAG=v0.0.1
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - popd
+  tags:
+    - crawless
+  only:
+    changes:
+      - docker/**/*
